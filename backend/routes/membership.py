@@ -191,6 +191,45 @@ def deduct_coupon(membership_id: str):
     logger.info(f"Coupon deducted successfully for membership {membership_id}. New usage: {membership.usage.conversation}")
     return {"success": True, "message": "Coupon deducted successfully"}
 
+@router.post("/usage/start-conversation")
+def start_conversation(usage_update: UsageUpdate):
+    """Start a conversation and deduct usage upfront"""
+    user_id = usage_update.user_id
+    
+    logger.info(f"Starting conversation for user: {user_id}")
+    
+    if user_id not in USERS:
+        logger.warning(f"User not found: {user_id}")
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find an active membership that can be used for conversation
+    valid_membership = None
+    for membership in MEMBERSHIPS.values():
+        if membership.user_id == user_id:
+            membership = check_membership_expiry(membership)
+            if membership.status == MembershipStatus.ACTIVE and validate_usage(membership, "conversation"):
+                valid_membership = membership
+                break
+    
+    if not valid_membership:
+        logger.warning(f"No valid active membership found for user: {user_id}")
+        raise HTTPException(status_code=400, detail="No active membership with remaining conversation usage")
+    
+    # Deduct conversation usage
+    if valid_membership.limits.conversation is not None:
+        valid_membership.usage.conversation += 1
+        logger.info(f"Conversation usage deducted for user {user_id}. New usage: {valid_membership.usage.conversation}/{valid_membership.limits.conversation}")
+    else:
+        logger.info(f"Unlimited conversation membership for user {user_id}")
+    
+    _save_data()
+    return {
+        "message": "Conversation started successfully",
+        "membership_id": valid_membership.id,
+        "current_usage": valid_membership.usage,
+        "limits": valid_membership.limits
+    }
+
 @router.post("/usage/update")
 def update_feature_usage(usage_update: UsageUpdate):
     """Update feature usage after user consumes a feature"""

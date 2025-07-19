@@ -22,28 +22,35 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(initialAudioUrl || null);
-  const [currentChunk, setCurrentChunk] = useState(0);
-  const [audioChunks, setAudioChunks] = useState<string[]>([]);
+  const currentChunkRef = useRef(0);
+  const audioChunksRef = useRef<string[]>([]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const componentId = useRef(Math.random().toString(36).substr(2, 9));
 
   // Split text into chunks (OpenAI TTS has a limit of ~4000 characters)
   const splitTextIntoChunks = useCallback((text: string) => {
     const maxChunkSize = 3000; // Safe limit for OpenAI TTS
-    const sentences = text.split('. ');
+    const sentences = text.split(/[.!?]+\s/); // Split on sentence endings with space
     const chunks: string[] = [];
     let currentChunk = '';
 
-    for (const sentence of sentences) {
-      if ((currentChunk + sentence).length > maxChunkSize && currentChunk) {
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i].trim();
+      if (!sentence) continue;
+      
+      // Add proper punctuation if missing (except for last sentence which might have it)
+      const punctuatedSentence = sentence + (i < sentences.length - 1 ? '. ' : '');
+      
+      if ((currentChunk + punctuatedSentence).length > maxChunkSize && currentChunk) {
         chunks.push(currentChunk.trim());
-        currentChunk = sentence;
+        currentChunk = punctuatedSentence;
       } else {
-        currentChunk += (currentChunk ? '. ' : '') + sentence;
+        currentChunk += (currentChunk ? '' : '') + punctuatedSentence;
       }
     }
     
-    if (currentChunk) {
+    if (currentChunk.trim()) {
       chunks.push(currentChunk.trim());
     }
 
@@ -66,18 +73,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       return;
     }
 
-    console.log('AudioPlayer generating audio for text:', {
-      text: text,
-      textLength: text.length,
-      sentences: text.split('.').length,
-      voice: voice
-    });
-
     setIsLoading(true);
     try {
       // Split text into chunks if it's too long
       const chunks = splitTextIntoChunks(text);
-      console.log('Text chunks:', chunks);
 
       if (chunks.length === 1) {
         // Single chunk - normal flow
@@ -86,7 +85,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ text, voice }),
+          body: JSON.stringify({ text: chunks[0], voice }),
         });
 
         if (!response.ok) {
@@ -136,42 +135,50 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           audioUrls.push(url);
         }
 
-        setAudioChunks(audioUrls);
-        setCurrentChunk(0);
+        audioChunksRef.current = audioUrls;
+        currentChunkRef.current = 0;
         
-        // Play first chunk
-        const audio = new Audio(audioUrls[0]);
-        audioRef.current = audio;
-        
-        audio.onended = () => {
-          if (currentChunk < audioUrls.length - 1) {
-            // Play next chunk
-            setCurrentChunk(prev => prev + 1);
-            const nextAudio = new Audio(audioUrls[currentChunk + 1]);
-            audioRef.current = nextAudio;
-            nextAudio.onended = audio.onended;
-            nextAudio.play();
-          } else {
-            // All chunks played
-            setIsPlaying(false);
-            onEnded?.();
+        // Function to play chunks sequentially
+        const playNextChunk = () => {
+          const chunkIndex = currentChunkRef.current;
+          const urls = audioChunksRef.current;
+          
+          if (chunkIndex < urls.length) {
+            const audio = new Audio(urls[chunkIndex]);
+            audioRef.current = audio;
+            
+            audio.onended = () => {
+              currentChunkRef.current++;
+              if (currentChunkRef.current < urls.length) {
+                // Play next chunk
+                playNextChunk();
+              } else {
+                // All chunks played
+                setIsPlaying(false);
+                onEnded?.();
+              }
+            };
+            
+            audio.onerror = () => {
+              setIsPlaying(false);
+              setIsLoading(false);
+            };
+
+            audio.play();
           }
         };
         
-        audio.onerror = () => {
-          setIsPlaying(false);
-          setIsLoading(false);
-        };
-
-        audio.play();
+        // Start playing the first chunk
+        playNextChunk();
         setIsPlaying(true);
       }
+      
     } catch (error) {
-      console.error('Error generating audio:', error);
+      // Error generating audio
     } finally {
       setIsLoading(false);
     }
-  }, [audioUrl, text, voice, isLoading, onEnded, splitTextIntoChunks, currentChunk]);
+  }, [audioUrl, text, voice, isLoading, onEnded, splitTextIntoChunks]);
 
   useEffect(() => {
     if (initialAudioUrl) {

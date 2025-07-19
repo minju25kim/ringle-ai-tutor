@@ -66,137 +66,42 @@
         }
     },
     "memberships": {
-        "32f457d8-502e-4a8e-a31b-8304d9ba48cc": {
+        "26aa292c-4ecd-413d-a14b-434a8ff453cf": {
             "name": "Basic Plan (B2C)",
-            "expires_at": "2025-08-18T05:39:35.133000+00:00",
+            "expires_at": "2025-08-18T11:40:38.353000+00:00",
             "limits": {
                 "conversation": 10,
                 "analysis": 3
             },
             "customer_type": "B2C",
             "template_id": "basic-b2c",
-            "id": "32f457d8-502e-4a8e-a31b-8304d9ba48cc",
+            "id": "26aa292c-4ecd-413d-a14b-434a8ff453cf",
             "user_id": "user-1",
-            "status": "active",
-            "usage": {
-                "conversation": 10,
-                "analysis": 0
-            },
-            "created_at": "2025-07-19T14:39:35.235841",
-            "payment_info": null
-        },
-        "0a45c35c-7107-4f05-aaa7-46355a46e754": {
-            "name": "Basic Plan (B2C)",
-            "expires_at": "2025-08-18T06:14:42.761000+00:00",
-            "limits": {
-                "conversation": 10,
-                "analysis": 3
-            },
-            "customer_type": "B2C",
-            "template_id": "basic-b2c",
-            "id": "0a45c35c-7107-4f05-aaa7-46355a46e754",
-            "user_id": "user-1",
-            "status": "active",
-            "usage": {
-                "conversation": 10,
-                "analysis": 0
-            },
-            "created_at": "2025-07-19T06:14:42.897480+00:00",
-            "payment_info": null
-        },
-        "537d65d5-7fc3-48e0-a21f-a2553daa1df6": {
-            "name": "Premium Plan (B2C)",
-            "expires_at": "2025-09-17T06:14:55.661000+00:00",
-            "limits": {
-                "conversation": 20,
-                "analysis": 5
-            },
-            "customer_type": "B2C",
-            "template_id": "premium-b2c",
-            "id": "537d65d5-7fc3-48e0-a21f-a2553daa1df6",
-            "user_id": "user-1",
-            "status": "active",
-            "usage": {
-                "conversation": 13,
-                "analysis": 0
-            },
-            "created_at": "2025-07-19T06:14:55.691026+00:00",
-            "payment_info": null
-        },
-        "63430a1a-21cf-4617-9d6e-24f639d34b9a": {
-            "name": "Basic Plan (B2B)",
-            "expires_at": "2026-07-19T06:23:41.686000+00:00",
-            "limits": {
-                "conversation": 100,
-                "analysis": 50
-            },
-            "customer_type": "B2B",
-            "template_id": "basic-b2b",
-            "id": "63430a1a-21cf-4617-9d6e-24f639d34b9a",
-            "user_id": "user-2",
             "status": "active",
             "usage": {
                 "conversation": 4,
                 "analysis": 0
             },
-            "created_at": "2025-07-19T06:23:41.848227+00:00",
+            "created_at": "2025-07-19T11:40:38.505640+00:00",
             "payment_info": null
         },
-        "83726cdc-0474-4e1f-881e-805712f1cb9c": {
+        "2ce93b97-497a-4e9f-bd46-2c4dd622ea1d": {
             "name": "Basic Plan (B2B)",
-            "expires_at": "2026-07-19T06:59:24.739000+00:00",
+            "expires_at": "2026-07-19T11:50:06.822000+00:00",
             "limits": {
                 "conversation": 100,
                 "analysis": 50
             },
             "customer_type": "B2B",
             "template_id": "basic-b2b",
-            "id": "83726cdc-0474-4e1f-881e-805712f1cb9c",
+            "id": "2ce93b97-497a-4e9f-bd46-2c4dd622ea1d",
             "user_id": "user-2",
             "status": "active",
             "usage": {
                 "conversation": 0,
                 "analysis": 0
             },
-            "created_at": "2025-07-19T06:59:24.884895+00:00",
-            "payment_info": null
-        },
-        "3f7bb961-b2ce-4e5b-8b9b-fc8c9d29763f": {
-            "name": "Premium Plan (B2C)",
-            "expires_at": "2025-09-17T06:59:31.417000+00:00",
-            "limits": {
-                "conversation": 20,
-                "analysis": 5
-            },
-            "customer_type": "B2C",
-            "template_id": "premium-b2c",
-            "id": "3f7bb961-b2ce-4e5b-8b9b-fc8c9d29763f",
-            "user_id": "user-1",
-            "status": "active",
-            "usage": {
-                "conversation": 0,
-                "analysis": 0
-            },
-            "created_at": "2025-07-19T06:59:31.440601+00:00",
-            "payment_info": null
-        },
-        "fa7bb78c-8d52-48ee-a0d2-160d9d775f1f": {
-            "name": "Unlimited Plan (B2C)",
-            "expires_at": "2025-10-17T06:59:32.964000+00:00",
-            "limits": {
-                "conversation": null,
-                "analysis": null
-            },
-            "customer_type": "B2C",
-            "template_id": "unlimited-b2c",
-            "id": "fa7bb78c-8d52-48ee-a0d2-160d9d775f1f",
-            "user_id": "user-1",
-            "status": "active",
-            "usage": {
-                "conversation": 0,
-                "analysis": 0
-            },
-            "created_at": "2025-07-19T06:59:32.988694+00:00",
+            "created_at": "2025-07-19T11:50:06.873139+00:00",
             "payment_info": null
         }
     }

@@ -4,17 +4,29 @@ export async function POST(req: NextRequest) {
   try {
     const { text, voice = 'alloy' } = await req.json();
     
-    console.log('TTS API received text:', text);
+    console.log('TTS API received text:', {
+      length: text?.length || 0,
+      preview: text?.substring(0, 100) + '...',
+      lastPart: text?.substring(text?.length - 50) || '',
+      fullText: text
+    });
     console.log('TTS API received voice:', voice);
     
     if (!text) {
       return new Response('Text is required', { status: 400 });
     }
 
-    const openaiApiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    const openaiApiKey = process.env.OPENAI_API_KEY
     if (!openaiApiKey) {
       return new Response('OpenAI API key not configured', { status: 500 });
     }
+
+    console.log('Sending request to OpenAI TTS with:', {
+      model: 'tts-1',
+      input: text,
+      voice: voice,
+      inputLength: text.length
+    });
 
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -36,6 +48,11 @@ export async function POST(req: NextRequest) {
     }
 
     const audioBuffer = await response.arrayBuffer();
+    console.log('OpenAI TTS response received:', {
+      status: response.status,
+      audioBufferSize: audioBuffer.byteLength,
+      contentType: response.headers.get('content-type')
+    });
     
     return new Response(audioBuffer, {
       headers: {
