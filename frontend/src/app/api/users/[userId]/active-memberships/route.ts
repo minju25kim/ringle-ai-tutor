@@ -14,7 +14,7 @@ export async function GET(
   }
 
   const { userId } = await params;
-  const backendUrl = `${BACKEND_API_BASE_URL}/api/v1/users/${userId}/active-membership`;
+  const backendUrl = `${BACKEND_API_BASE_URL}/api/v1/users/${userId}/active-memberships`;
 
   try {
     const response = await fetch(backendUrl, {

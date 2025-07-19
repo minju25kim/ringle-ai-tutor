@@ -22,7 +22,7 @@ def validate_usage(membership: Membership, feature_type: str) -> bool:
     if membership.status != MembershipStatus.ACTIVE:
         return False
     
-    if datetime.now() > membership.expires_at:
+    if datetime.now(timezone.utc) > membership.expires_at:
         membership.status = MembershipStatus.EXPIRED
         return False
     
@@ -48,7 +48,7 @@ def create_membership(data: MembershipCreate):
     new_id = str(uuid4())
     membership = Membership(
         id=new_id, 
-        created_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
         usage=FeatureUsage(),
         **data.dict()
     )
@@ -96,24 +96,29 @@ def get_user_memberships(user_id: str):
     
     return user_memberships
 
-@router.get("/users/{user_id}/active-membership")
-def get_user_active_membership(user_id: str):
-    """Get user's active membership"""
-    logger.info(f"Looking for active membership for user: {user_id}")
+@router.get("/users/{user_id}/active-memberships", response_model=list[Membership])
+def get_user_active_memberships(user_id: str):
+    """Get user's active memberships"""
+    logger.info(f"Looking for active memberships for user: {user_id}")
     
     if user_id not in USERS:
         logger.warning(f"User not found: {user_id}")
         raise HTTPException(status_code=404, detail="User not found")
     
+    active_memberships = []
     for membership in MEMBERSHIPS.values():
         if membership.user_id == user_id:
             membership = check_membership_expiry(membership)
             if membership.status == MembershipStatus.ACTIVE:
-                logger.info(f"Found active membership {membership.id} for user {user_id}")
-                return membership
+                active_memberships.append(membership)
     
-    logger.warning(f"No active membership found for user: {user_id}")
-    raise HTTPException(status_code=404, detail="No active membership found")
+    if not active_memberships:
+        logger.warning(f"No active memberships found for user: {user_id}")
+        # Return an empty list instead of 404 if no active memberships
+        return []
+    
+    logger.info(f"Found {len(active_memberships)} active memberships for user {user_id}")
+    return active_memberships
 
 @router.post("/usage/check")
 def check_feature_usage(usage_check: UsageUpdate):
@@ -127,35 +132,64 @@ def check_feature_usage(usage_check: UsageUpdate):
         logger.warning(f"User not found: {user_id}")
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Find active membership
-    active_membership = None
+    # Find an active membership that can be used for the feature
+    valid_membership = None
     for membership in MEMBERSHIPS.values():
         if membership.user_id == user_id:
             membership = check_membership_expiry(membership)
-            if membership.status == MembershipStatus.ACTIVE:
-                active_membership = membership
-                break
+            if membership.status == MembershipStatus.ACTIVE and validate_usage(membership, feature_type):
+                valid_membership = membership
+                break # Found a valid one, can stop searching
     
-    if not active_membership:
-        logger.warning(f"No active membership found for user: {user_id}")
-        return {"can_use": False, "reason": "No active membership"}
+    if not valid_membership:
+        logger.warning(f"No valid active membership found for user: {user_id}, feature: {feature_type}")
+        return {"can_use": False, "reason": "No valid active membership for this feature"}
     
-    can_use = validate_usage(active_membership, feature_type)
+    can_use = validate_usage(valid_membership, feature_type)
     
     if not can_use:
         if feature_type == "conversation":
-            limit = active_membership.limits.conversation
-            usage = active_membership.usage.conversation
+            limit = valid_membership.limits.conversation
+            usage = valid_membership.usage.conversation
         else:
-            limit = active_membership.limits.analysis
-            usage = active_membership.usage.analysis
+            limit = valid_membership.limits.analysis
+            usage = valid_membership.usage.analysis
         
         reason = f"Usage limit reached ({usage}/{limit})" if limit else "Feature not available"
         logger.warning(f"Usage limit exceeded for user {user_id}, feature {feature_type}: {reason}")
         return {"can_use": False, "reason": reason}
     
     logger.info(f"Feature usage check passed for user {user_id}, feature {feature_type}")
-    return {"can_use": True, "membership": active_membership}
+    return {"can_use": True, "membership": valid_membership}
+
+@router.post("/memberships/{membership_id}/deduct-coupon")
+def deduct_coupon(membership_id: str):
+    """Deduct a coupon from a count-based membership"""
+    logger.info(f"Attempting to deduct coupon for membership ID: {membership_id}")
+
+    if membership_id not in MEMBERSHIPS:
+        logger.warning(f"Membership not found: {membership_id}")
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    membership = MEMBERSHIPS[membership_id]
+    membership = check_membership_expiry(membership)
+
+    if membership.status != MembershipStatus.ACTIVE:
+        logger.warning(f"Membership {membership_id} is not active. Status: {membership.status}")
+        raise HTTPException(status_code=400, detail="Membership is not active")
+
+    if membership.limits.conversation is None:
+        logger.warning(f"Membership {membership_id} is not count-based (conversation limit is None).")
+        raise HTTPException(status_code=400, detail="This membership is not count-based for conversations.")
+
+    if membership.usage.conversation >= membership.limits.conversation:
+        logger.warning(f"Membership {membership_id} has no remaining conversation coupons. Usage: {membership.usage.conversation}, Limit: {membership.limits.conversation}")
+        raise HTTPException(status_code=400, detail="No remaining conversation coupons for this membership.")
+
+    membership.usage.conversation += 1
+    _save_data()
+    logger.info(f"Coupon deducted successfully for membership {membership_id}. New usage: {membership.usage.conversation}")
+    return {"success": True, "message": "Coupon deducted successfully"}
 
 @router.post("/usage/update")
 def update_feature_usage(usage_update: UsageUpdate):
@@ -166,30 +200,26 @@ def update_feature_usage(usage_update: UsageUpdate):
     if user_id not in USERS:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Find active membership
-    active_membership = None
+    # Find an active membership that can be used for the feature and has remaining usage
+    updatable_membership = None
     for membership in MEMBERSHIPS.values():
         if membership.user_id == user_id:
             membership = check_membership_expiry(membership)
-            if membership.status == MembershipStatus.ACTIVE:
-                active_membership = membership
-                break
+            if membership.status == MembershipStatus.ACTIVE and validate_usage(membership, feature_type):
+                updatable_membership = membership
+                break # Found a valid one, can stop searching
     
-    if not active_membership:
-        raise HTTPException(status_code=404, detail="No active membership")
-    
-    # Validate usage before incrementing
-    if not validate_usage(active_membership, feature_type):
-        raise HTTPException(status_code=400, detail="Usage limit exceeded")
+    if not updatable_membership:
+        raise HTTPException(status_code=400, detail="No active membership with remaining usage for this feature")
     
     # Increment usage
     if feature_type == "conversation":
-        active_membership.usage.conversation += 1
+        updatable_membership.usage.conversation += 1
     elif feature_type == "analysis":
-        active_membership.usage.analysis += 1
+        updatable_membership.usage.analysis += 1
     _save_data()
     return {
         "message": "Usage updated successfully",
-        "current_usage": active_membership.usage,
-        "limits": active_membership.limits
+        "current_usage": updatable_membership.usage,
+        "limits": updatable_membership.limits
     }

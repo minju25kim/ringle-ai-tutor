@@ -13,7 +13,7 @@ import { MembershipTemplate } from '@/types';
 export default function Home() {
   const router = useRouter();
   const { currentUser, setUserId } = useUserStore(); // Get currentUser from store
-  const { membership, loading, error, refetch } = useMembership(currentUser.id); // Pass currentUser.id and get refetch
+  const { memberships, loading, error, refetch } = useMembership(currentUser.id); // Pass currentUser.id and get refetch
   const [templates, setTemplates] = useState<MembershipTemplate[]>([]);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
@@ -68,7 +68,7 @@ export default function Home() {
 
       <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-1 lg:text-left gap-8">
         <UserSwitcher />
-        <MembershipInfo membership={membership} loading={loading} error={error} />
+        <MembershipInfo memberships={memberships} loading={loading} error={error} />
 
         <div className="w-full">
           <h2 className="text-xl font-bold mb-4">Available Membership Plans ({currentUser.customer_type})</h2>
@@ -98,7 +98,7 @@ export default function Home() {
         <button
           onClick={handleStartConversation}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors duration-200"
-          disabled={loading || error !== null || !membership} // Disable if loading, error, or no membership
+          disabled={loading || error !== null || !memberships} // Disable if loading, error, or no membership
         >
           Start Conversation
         </button>

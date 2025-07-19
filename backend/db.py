@@ -1,10 +1,14 @@
 import json
+import os
 from typing import Dict
 from uuid import uuid4
 from models import Membership, MembershipTemplate, User, CustomerType, FeatureLimit, MembershipStatus
 from datetime import datetime, timedelta
 
-DATA_FILE = "data.json"
+# Use mounted volume for persistent storage, fallback to local file
+# In Docker container: /app/data, in local development: current directory
+DATA_DIR = os.getenv("DATA_DIR", ".")
+DATA_FILE = os.path.join(DATA_DIR, "data.json")
 
 MEMBERSHIPS: Dict[str, Membership] = {}
 MEMBERSHIP_TEMPLATES: Dict[str, MembershipTemplate] = {}
@@ -13,6 +17,10 @@ USERS: Dict[str, User] = {}
 def _load_data():
     global MEMBERSHIPS, MEMBERSHIP_TEMPLATES, USERS
     try:
+        # Only create directory if we're in a Docker container (DATA_DIR is /app/data)
+        if DATA_DIR.startswith("/app"):
+            os.makedirs(DATA_DIR, exist_ok=True)
+        
         with open(DATA_FILE, "r") as f:
             data = json.load(f)
             USERS = {k: User(**v) for k, v in data.get("users", {}).items()}
@@ -27,6 +35,10 @@ def _load_data():
         init_seed_data_defaults()
 
 def _save_data():
+    # Only create directory if we're in a Docker container (DATA_DIR is /app/data)
+    if DATA_DIR.startswith("/app"):
+        os.makedirs(DATA_DIR, exist_ok=True)
+    
     data = {
         "users": {k: v.dict() for k, v in USERS.items()},
         "membership_templates": {k: v.dict() for k, v in MEMBERSHIP_TEMPLATES.items()},

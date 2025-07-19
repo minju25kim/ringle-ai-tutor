@@ -85,5 +85,5 @@ class PaymentRequest(BaseModel):
     amount: float
 
 class UsageUpdate(BaseModel):
-    feature_type: Literal["conversation", "analysis"]
+    feature_type: str
     user_id: str
