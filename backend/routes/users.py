@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from uuid import uuid4
 from models import User, UserCreate
-from db import USERS
+from db import USERS, _save_data
 
 router = APIRouter()
 
@@ -11,6 +11,7 @@ def create_user(data: UserCreate):
     user_id = str(uuid4())
     user = User(id=user_id, **data.dict())
     USERS[user_id] = user
+    _save_data()
     return user
 
 @router.get("/users", response_model=list[User])
@@ -33,6 +34,7 @@ def update_user(user_id: str, data: UserCreate):
     
     updated_user = User(id=user_id, **data.dict())
     USERS[user_id] = updated_user
+    _save_data()
     return updated_user
 
 @router.delete("/users/{user_id}")
@@ -41,4 +43,5 @@ def delete_user(user_id: str):
     if user_id not in USERS:
         raise HTTPException(status_code=404, detail="User not found")
     del USERS[user_id]
+    _save_data()
     return {"message": "User deleted"}

@@ -1,0 +1,89 @@
+{
+    "users": {
+        "user-1": {
+            "id": "user-1",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "customer_type": "B2C",
+            "company_id": null
+        },
+        "user-2": {
+            "id": "user-2",
+            "name": "Jane Smith",
+            "email": "jane@company.com",
+            "customer_type": "B2B",
+            "company_id": "company-1"
+        }
+    },
+    "membership_templates": {
+        "basic-b2c": {
+            "id": "basic-b2c",
+            "name": "Basic Plan (B2C)",
+            "customer_type": "B2C",
+            "duration_days": 30,
+            "limits": {
+                "conversation": 10,
+                "analysis": 3
+            },
+            "price": 9.99,
+            "is_active": true
+        },
+        "premium-b2c": {
+            "id": "premium-b2c",
+            "name": "Premium Plan (B2C)",
+            "customer_type": "B2C",
+            "duration_days": 60,
+            "limits": {
+                "conversation": 20,
+                "analysis": 5
+            },
+            "price": 19.99,
+            "is_active": true
+        },
+        "unlimited-b2c": {
+            "id": "unlimited-b2c",
+            "name": "Unlimited Plan (B2C)",
+            "customer_type": "B2C",
+            "duration_days": 90,
+            "limits": {
+                "conversation": null,
+                "analysis": null
+            },
+            "price": 39.99,
+            "is_active": true
+        },
+        "basic-b2b": {
+            "id": "basic-b2b",
+            "name": "Basic Plan (B2B)",
+            "customer_type": "B2B",
+            "duration_days": 365,
+            "limits": {
+                "conversation": 100,
+                "analysis": 50
+            },
+            "price": null,
+            "is_active": true
+        }
+    },
+    "memberships": {
+        "32f457d8-502e-4a8e-a31b-8304d9ba48cc": {
+            "name": "Basic Plan (B2C)",
+            "expires_at": "2025-08-18T05:39:35.133000+00:00",
+            "limits": {
+                "conversation": 10,
+                "analysis": 3
+            },
+            "customer_type": "B2C",
+            "template_id": "basic-b2c",
+            "id": "32f457d8-502e-4a8e-a31b-8304d9ba48cc",
+            "user_id": "user-1",
+            "status": "active",
+            "usage": {
+                "conversation": 0,
+                "analysis": 0
+            },
+            "created_at": "2025-07-19T14:39:35.235841",
+            "payment_info": null
+        }
+    }
+}

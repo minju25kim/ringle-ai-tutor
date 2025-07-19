@@ -1,103 +1,108 @@
-import Image from "next/image";
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUserStore } from '@/hooks/useUser';
+import { useMembership } from '@/hooks/useMembership';
+import UserSwitcher from '@/components/UserSwitcher';
+import MembershipInfo from '@/components/MembershipInfo';
+import { getMembershipTemplates, purchaseMembership } from '@/services/membershipService';
+import { MembershipTemplate } from '@/types';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
+  const { currentUser, setUserId } = useUserStore(); // Get currentUser from store
+  const { membership, loading, error, refetch } = useMembership(currentUser.id); // Pass currentUser.id and get refetch
+  const [templates, setTemplates] = useState<MembershipTemplate[]>([]);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        // Pass currentUser.customer_type to filter templates
+        const fetchedTemplates = await getMembershipTemplates(currentUser.customer_type);
+        setTemplates(fetchedTemplates);
+      } catch (err) {
+        console.error('Failed to fetch templates:', err);
+      }
+    };
+    fetchTemplates();
+  }, [currentUser.customer_type]); // Re-fetch when customer_type changes
+
+  const handleStartConversation = () => {
+    router.push('/chat');
+  };
+
+  const handlePurchase = async (templateId: string) => {
+    setPurchaseLoading(true);
+    setPurchaseError(null);
+    try {
+      const newMembership = await purchaseMembership(currentUser.id, templateId); // Use currentUser.id
+      if (newMembership) {
+        alert(`Successfully purchased ${newMembership.template_id} for ${currentUser.name}!`);
+        refetch(); // Re-fetch membership to update UI
+      } else {
+        setPurchaseError('Failed to purchase membership.');
+      }
+      console.log('newMembership', newMembership);
+    } catch (err: any) {
+      setPurchaseError(err.message || 'An error occurred during purchase.');
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
+        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
+          Ringle AI Tutor
+        </p>
+      </div>
+
+      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''_] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''_] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px]">
+        {/* Your existing content */}
+      </div>
+
+      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-1 lg:text-left gap-8">
+        <UserSwitcher />
+        <MembershipInfo membership={membership} loading={loading} error={error} />
+
+        <div className="w-full">
+          <h2 className="text-xl font-bold mb-4">Available Membership Plans ({currentUser.customer_type})</h2>
+          {templates.length === 0 && <p>No membership plans available for this user type.</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {templates.map((template) => (
+              <div key={template.id} className="border p-4 rounded-lg shadow">
+                <h3 className="text-lg font-semibold">{template.name}</h3>
+                <p className="text-gray-600">{template.description}</p>
+                {template.price !== null && <p className="font-bold mt-2">Price: ${template.price}</p>}
+                <p>Duration: {template.duration_days} days</p>
+                <p>Conversations: {template.limits.conversation === null ? 'Unlimited' : template.limits.conversation}</p>
+                <p>Analysis: {template.limits.analysis === null ? 'Unlimited' : template.limits.analysis}</p>
+                <button
+                  onClick={() => handlePurchase(template.id)}
+                  className="mt-4 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                  disabled={purchaseLoading || !currentUser.id}
+                >
+                  {purchaseLoading ? 'Purchasing...' : 'Purchase'}
+                </button>
+              </div>
+            ))}
+          </div>
+          {purchaseError && <p className="text-red-500 mt-2">Error: {purchaseError}</p>}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        <button
+          onClick={handleStartConversation}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors duration-200"
+          disabled={loading || error !== null || !membership} // Disable if loading, error, or no membership
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          Start Conversation
+        </button>
+      </div>
+    </main>
   );
 }

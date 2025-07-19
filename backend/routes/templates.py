@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from uuid import uuid4
 from models import MembershipTemplate, MembershipTemplateCreate, CustomerType
-from db import MEMBERSHIP_TEMPLATES
+from db import MEMBERSHIP_TEMPLATES, _save_data
 
 router = APIRouter()
 
@@ -11,6 +11,7 @@ def create_template(data: MembershipTemplateCreate):
     template_id = str(uuid4())
     template = MembershipTemplate(id=template_id, **data.dict())
     MEMBERSHIP_TEMPLATES[template_id] = template
+    _save_data()
     return template
 
 @router.get("/templates", response_model=list[MembershipTemplate])
@@ -36,6 +37,7 @@ def update_template(template_id: str, data: MembershipTemplateCreate):
     
     updated_template = MembershipTemplate(id=template_id, **data.dict())
     MEMBERSHIP_TEMPLATES[template_id] = updated_template
+    _save_data()
     return updated_template
 
 @router.delete("/templates/{template_id}")
@@ -44,6 +46,7 @@ def delete_template(template_id: str):
     if template_id not in MEMBERSHIP_TEMPLATES:
         raise HTTPException(status_code=404, detail="Template not found")
     del MEMBERSHIP_TEMPLATES[template_id]
+    _save_data()
     return {"message": "Template deleted"}
 
 @router.post("/templates/{template_id}/toggle")
@@ -54,4 +57,5 @@ def toggle_template_status(template_id: str):
     
     template = MEMBERSHIP_TEMPLATES[template_id]
     template.is_active = not template.is_active
+    _save_data()
     return {"message": f"Template {'activated' if template.is_active else 'deactivated'}"}
